@@ -57,25 +57,6 @@ let complaints = [
 
 let nextId = 5;
 
-// Auth Route - Register
-app.post('/api/auth/register', (req, res) => {
-    const { regNumber, email, password } = req.body;
-
-    // Mock registration validation
-    if (regNumber && email && password) {
-        res.json({
-            success: true,
-            user: {
-                name: 'New User',
-                role: 'Student',
-                regNumber,
-                email
-            }
-        });
-    } else {
-        res.status(400).json({ success: false, message: 'Invalid registration credentials' });
-    }
-});
 
 // Auth Route - Login
 app.post('/api/auth/login', (req, res) => {
@@ -95,6 +76,24 @@ app.post('/api/auth/login', (req, res) => {
     } else {
         res.status(400).json({ success: false, message: 'Invalid credentials' });
     }
+});
+
+// Mock user profile
+let userProfile = {
+    name: 'Rahul S.',
+    role: 'Student',
+    regNumber: 'RA2211003010452',
+    email: 'rahuls@srmist.edu.in',
+    department: 'Computer Science'
+};
+
+app.get('/api/user/profile', (req, res) => {
+    res.json(userProfile);
+});
+
+app.put('/api/user/profile', (req, res) => {
+    userProfile = { ...userProfile, ...req.body };
+    res.json({ success: true, profile: userProfile });
 });
 
 // Get all complaints

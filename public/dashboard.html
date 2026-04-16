@@ -141,7 +141,7 @@
             </header>
 
             <!-- Content -->
-            <div class="dash-content">
+            <div class="dash-content" id="dashboardSection">
 
                 <!-- Stats Grid -->
                 <section class="stats-grid" id="statsGrid">
@@ -226,6 +226,35 @@
                     </div>
                 </section>
 
+            </div>
+
+            <!-- Settings Content -->
+            <div class="dash-content" id="settingsSection" style="display:none;">
+                <div class="complaints-header" style="margin-bottom: 24px;">
+                    <h2>Profile Settings</h2>
+                </div>
+                <div class="complaint-card" style="padding: 24px; cursor: default;">
+                    <div class="detail-info-grid">
+                        <div class="detail-info-item">
+                            <div class="info-label">Full Name</div>
+                            <div class="info-value" id="profileName">-</div>
+                        </div>
+                        <div class="detail-info-item">
+                            <div class="info-label">Register Number</div>
+                            <div class="info-value" id="profileReg">-</div>
+                        </div>
+                        <div class="detail-info-item">
+                            <div class="info-label">Email Address</div>
+                            <div class="info-value" id="profileEmail">-</div>
+                        </div>
+                        <div class="detail-info-item">
+                            <div class="info-label">Department</div>
+                            <div class="info-value" id="profileDept">-</div>
+                        </div>
+                    </div>
+                    <button class="btn-submit" id="btnEditProfile" style="margin-top: 24px;">Edit Profile (Mock
+                        UI)</button>
+                </div>
             </div>
         </main>
 

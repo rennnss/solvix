@@ -63,66 +63,11 @@ function initLogin() {
     const passwordInput = document.getElementById('password');
     const eyeIcon = document.getElementById('eyeIcon');
     const btnForgot = document.getElementById('btnForgot');
-    const btnRegister = document.getElementById('btnRegister');
-
     if (btnForgot) {
         btnForgot.addEventListener('click', (e) => {
             e.preventDefault();
             if (typeof showToast === 'function') showToast('Recovery email will be sent shortly.');
         });
-    }
-
-    if (btnRegister) {
-        btnRegister.addEventListener('click', (e) => {
-            e.preventDefault();
-            const modal = document.getElementById('registerModal');
-            if (modal) modal.classList.add('active');
-        });
-        document.getElementById('registerClose')?.addEventListener('click', () => {
-            document.getElementById('registerModal').classList.remove('active');
-        });
-        const registerModal = document.getElementById('registerModal');
-        if (registerModal) {
-            registerModal.addEventListener('click', (e) => {
-                if (e.target === registerModal) registerModal.classList.remove('active');
-            });
-        }
-
-        const registerForm = document.getElementById('registerForm');
-        if (registerForm) {
-            registerForm.addEventListener('submit', async (e) => {
-                e.preventDefault();
-                const btn = registerForm.querySelector('.btn-submit');
-                const ogText = btn.textContent;
-                btn.textContent = 'Registering...';
-                btn.disabled = true;
-
-                try {
-                    const response = await fetch('/api/auth/register', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({
-                            regNumber: document.getElementById('regRegNumber').value,
-                            email: document.getElementById('regEmail').value,
-                            password: document.getElementById('regPassword').value
-                        })
-                    });
-                    const data = await response.json();
-                    if (data.success) {
-                        if (typeof showToast === 'function') showToast('Registration successful! Please login.');
-                        document.getElementById('registerModal').classList.remove('active');
-                        registerForm.reset();
-                    } else {
-                        if (typeof showToast === 'function') showToast(data.message || 'Registration failed');
-                    }
-                } catch (err) {
-                    if (typeof showToast === 'function') showToast('Network Error');
-                } finally {
-                    btn.textContent = ogText;
-                    btn.disabled = false;
-                }
-            });
-        }
     }
 
     toggleBtn.addEventListener('click', () => {
@@ -467,11 +412,54 @@ function initSearch() {
     });
 }
 
-// ─── Sidebar Toggle (Mobile) ──────────────────
+// ─── Phase 3: Profile & Settings ──────────────
+async function loadUserProfile() {
+    try {
+        const res = await fetch('/api/user/profile');
+        const data = await res.json();
+
+        document.getElementById('profileName').textContent = data.name;
+        document.getElementById('profileReg').textContent = data.regNumber;
+        document.getElementById('profileEmail').textContent = data.email;
+        document.getElementById('profileDept').textContent = data.department;
+    } catch (err) {
+        showToast('Failed to load profile');
+    }
+}
+
+function initSettings() {
+    const btnEdit = document.getElementById('btnEditProfile');
+    if (btnEdit) {
+        btnEdit.addEventListener('click', async () => {
+            const newDept = prompt('Enter new department:', document.getElementById('profileDept').textContent);
+            if (newDept) {
+                btnEdit.textContent = 'Saving...';
+                try {
+                    await fetch('/api/user/profile', {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ department: newDept })
+                    });
+                    showToast('Profile updated!');
+                    loadUserProfile();
+                } catch (e) {
+                    showToast('Update failed');
+                } finally {
+                    btnEdit.textContent = 'Edit Profile (Mock UI)';
+                }
+            }
+        });
+    }
+}
+
+// ─── Sidebar Toggle (Mobile) / Router ─────────
 function initSidebar() {
     const sidebar = document.getElementById('sidebar');
     const overlay = document.getElementById('sidebarOverlay');
     const toggle = document.getElementById('btnSidebarToggle');
+    const dashView = document.getElementById('dashboardSection');
+    const setView = document.getElementById('settingsSection');
+    const links = document.querySelectorAll('.sidebar-nav-item');
 
     if (!sidebar) return;
 
@@ -489,21 +477,45 @@ function initSidebar() {
         });
     }
 
-    const links = document.querySelectorAll('.sidebar-nav-item');
-    links.forEach(link => {
-        if (!link.classList.contains('active')) {
-            link.addEventListener('click', (e) => {
-                e.preventDefault();
-                showToast('Section coming soon in Phase 3');
-            });
+    // Switch Views
+    const switchView = (toSettings) => {
+        if (dashView && setView) {
+            dashView.style.display = toSettings ? 'none' : 'block';
+            setView.style.display = toSettings ? 'block' : 'none';
         }
+
+        links.forEach(l => l.classList.remove('active'));
+        if (toSettings) {
+            links[links.length - 1].classList.add('active'); // Select Settings
+            loadUserProfile();
+        } else {
+            links[0].classList.add('active'); // Select Dashboard
+        }
+
+        if (window.innerWidth <= 768) {
+            sidebar.classList.remove('open');
+            overlay?.classList.remove('active');
+        }
+    };
+
+    links.forEach((link, index) => {
+        link.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (index === 0) {
+                switchView(false);
+            } else if (index === links.length - 1) {
+                switchView(true);
+            } else {
+                showToast('Section coming soon.');
+            }
+        });
     });
 
     const userProfile = document.querySelector('.sidebar-user');
     if (userProfile) {
+        userProfile.style.cursor = 'pointer';
         userProfile.addEventListener('click', () => {
-            showToast('User profile settings coming soon');
-            userProfile.style.cursor = 'pointer';
+            switchView(true); // Switch to settings
         });
     }
 }
@@ -526,6 +538,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 initModals();
                 initNewComplaintForm();
                 initSidebar();
+                initSettings();
             })
             .catch(err => {
                 showToast('Failed to load complaints');
