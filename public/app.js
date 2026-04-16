@@ -62,6 +62,68 @@ function initLogin() {
     const toggleBtn = document.getElementById('togglePassword');
     const passwordInput = document.getElementById('password');
     const eyeIcon = document.getElementById('eyeIcon');
+    const btnForgot = document.getElementById('btnForgot');
+    const btnRegister = document.getElementById('btnRegister');
+
+    if (btnForgot) {
+        btnForgot.addEventListener('click', (e) => {
+            e.preventDefault();
+            if (typeof showToast === 'function') showToast('Recovery email will be sent shortly.');
+        });
+    }
+
+    if (btnRegister) {
+        btnRegister.addEventListener('click', (e) => {
+            e.preventDefault();
+            const modal = document.getElementById('registerModal');
+            if (modal) modal.classList.add('active');
+        });
+        document.getElementById('registerClose')?.addEventListener('click', () => {
+            document.getElementById('registerModal').classList.remove('active');
+        });
+        const registerModal = document.getElementById('registerModal');
+        if (registerModal) {
+            registerModal.addEventListener('click', (e) => {
+                if (e.target === registerModal) registerModal.classList.remove('active');
+            });
+        }
+
+        const registerForm = document.getElementById('registerForm');
+        if (registerForm) {
+            registerForm.addEventListener('submit', async (e) => {
+                e.preventDefault();
+                const btn = registerForm.querySelector('.btn-submit');
+                const ogText = btn.textContent;
+                btn.textContent = 'Registering...';
+                btn.disabled = true;
+
+                try {
+                    const response = await fetch('/api/auth/register', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            regNumber: document.getElementById('regRegNumber').value,
+                            email: document.getElementById('regEmail').value,
+                            password: document.getElementById('regPassword').value
+                        })
+                    });
+                    const data = await response.json();
+                    if (data.success) {
+                        if (typeof showToast === 'function') showToast('Registration successful! Please login.');
+                        document.getElementById('registerModal').classList.remove('active');
+                        registerForm.reset();
+                    } else {
+                        if (typeof showToast === 'function') showToast(data.message || 'Registration failed');
+                    }
+                } catch (err) {
+                    if (typeof showToast === 'function') showToast('Network Error');
+                } finally {
+                    btn.textContent = ogText;
+                    btn.disabled = false;
+                }
+            });
+        }
+    }
 
     toggleBtn.addEventListener('click', () => {
         const isHidden = passwordInput.type === 'password';
@@ -234,14 +296,60 @@ function openDetailModal(id) {
         <div class="info-value" style="text-transform:capitalize">${c.status}</div>
       </div>
     </div>
-    <div class="detail-info-item" style="margin-bottom:0">
+    <div class="detail-info-item" style="margin-bottom:24px">
       <div class="info-label">Submitted By</div>
       <div class="info-value">${c.submittedBy}</div>
+    </div>
+    <div style="display:flex;gap:12px;margin-top:20px;">
+        ${c.status !== 'resolved' ? `<button class="btn-submit" style="flex:1;margin-top:0;" onclick="updateStatus(${c.id}, 'resolved')">Mark Resolved</button>` : ''}
+        <button class="btn-submit" style="flex:1;margin-top:0;background:var(--danger-bg);color:var(--danger-text)" onclick="deleteComplaint(${c.id})">Delete Complaint</button>
     </div>
   `;
 
     toggleModal('detailModal', true);
 }
+
+window.updateStatus = async (id, status) => {
+    try {
+        const res = await fetch(`/api/complaints/${id}/status`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ status })
+        });
+        const data = await res.json();
+        if (data.success) {
+            const index = complaints.findIndex(x => x.id === id);
+            if (index !== -1) complaints[index].status = status;
+            toggleModal('detailModal', false);
+            renderComplaints();
+            updateStats();
+            showToast('✓ Status updated successfully');
+        } else {
+            showToast('Failed to update status');
+        }
+    } catch (err) {
+        showToast('Network error');
+    }
+};
+
+window.deleteComplaint = async (id) => {
+    if (!confirm('Are you sure you want to delete this complaint?')) return;
+    try {
+        const res = await fetch(`/api/complaints/${id}`, { method: 'DELETE' });
+        const data = await res.json();
+        if (data.success) {
+            complaints = complaints.filter(x => x.id !== id);
+            toggleModal('detailModal', false);
+            renderComplaints();
+            updateStats();
+            showToast('✓ Complaint deleted successfully');
+        } else {
+            showToast('Failed to delete complaint');
+        }
+    } catch (err) {
+        showToast('Network error');
+    }
+};
 
 // ─── New Complaint Form ───────────────────────
 function initNewComplaintForm() {
@@ -365,17 +473,39 @@ function initSidebar() {
     const overlay = document.getElementById('sidebarOverlay');
     const toggle = document.getElementById('btnSidebarToggle');
 
-    if (!sidebar || !toggle) return;
+    if (!sidebar) return;
 
-    toggle.addEventListener('click', () => {
-        sidebar.classList.toggle('open');
-        overlay?.classList.toggle('active');
+    if (toggle) {
+        toggle.addEventListener('click', () => {
+            sidebar.classList.toggle('open');
+            overlay?.classList.toggle('active');
+        });
+    }
+
+    if (overlay) {
+        overlay.addEventListener('click', () => {
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+        });
+    }
+
+    const links = document.querySelectorAll('.sidebar-nav-item');
+    links.forEach(link => {
+        if (!link.classList.contains('active')) {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                showToast('Section coming soon in Phase 3');
+            });
+        }
     });
 
-    overlay?.addEventListener('click', () => {
-        sidebar.classList.remove('open');
-        overlay.classList.remove('active');
-    });
+    const userProfile = document.querySelector('.sidebar-user');
+    if (userProfile) {
+        userProfile.addEventListener('click', () => {
+            showToast('User profile settings coming soon');
+            userProfile.style.cursor = 'pointer';
+        });
+    }
 }
 
 // ─── Init ─────────────────────────────────────

@@ -57,7 +57,27 @@ let complaints = [
 
 let nextId = 5;
 
-// Auth Route
+// Auth Route - Register
+app.post('/api/auth/register', (req, res) => {
+    const { regNumber, email, password } = req.body;
+
+    // Mock registration validation
+    if (regNumber && email && password) {
+        res.json({
+            success: true,
+            user: {
+                name: 'New User',
+                role: 'Student',
+                regNumber,
+                email
+            }
+        });
+    } else {
+        res.status(400).json({ success: false, message: 'Invalid registration credentials' });
+    }
+});
+
+// Auth Route - Login
 app.post('/api/auth/login', (req, res) => {
     const { regNumber, email, password } = req.body;
 
@@ -108,6 +128,33 @@ app.post('/api/complaints', (req, res) => {
 
     complaints.unshift(newComplaint); // Add to top of list
     res.status(201).json({ success: true, complaint: newComplaint });
+});
+
+// Update complaint status
+app.put('/api/complaints/:id/status', (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    const { status } = req.body;
+
+    const index = complaints.findIndex(c => c.id === id);
+    if (index !== -1 && status) {
+        complaints[index].status = status;
+        res.json({ success: true, complaint: complaints[index] });
+    } else {
+        res.status(404).json({ success: false, message: 'Complaint not found or invalid status' });
+    }
+});
+
+// Delete a complaint
+app.delete('/api/complaints/:id', (req, res) => {
+    const id = parseInt(req.params.id, 10);
+    const index = complaints.findIndex(c => c.id === id);
+
+    if (index !== -1) {
+        complaints.splice(index, 1);
+        res.json({ success: true, message: 'Complaint deleted successfully' });
+    } else {
+        res.status(404).json({ success: false, message: 'Complaint not found' });
+    }
 });
 
 // Route for all other requests - send the dashboard file if we want SPA-like routing, 
