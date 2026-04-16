@@ -66,8 +66,29 @@ function initLogin() {
     if (btnForgot) {
         btnForgot.addEventListener('click', (e) => {
             e.preventDefault();
-            if (typeof showToast === 'function') showToast('Recovery email will be sent shortly.');
+            const modal = document.getElementById('forgotModal');
+            if (modal) modal.classList.add('active');
         });
+        document.getElementById('forgotClose')?.addEventListener('click', () => {
+            document.getElementById('forgotModal').classList.remove('active');
+        });
+        const forgotModal = document.getElementById('forgotModal');
+        if (forgotModal) {
+            forgotModal.addEventListener('click', (e) => {
+                if (e.target === forgotModal) forgotModal.classList.remove('active');
+            });
+        }
+
+        const forgotForm = document.getElementById('forgotForm');
+        if (forgotForm) {
+            forgotForm.addEventListener('submit', (e) => {
+                e.preventDefault();
+                const emailInput = document.getElementById('forgotEmail').value;
+                showToast('Reset link sent to ' + emailInput);
+                forgotModal.classList.remove('active');
+                forgotForm.reset();
+            });
+        }
     }
 
     toggleBtn.addEventListener('click', () => {
@@ -119,6 +140,8 @@ function initLogin() {
 // ============================================
 
 let currentFilter = 'all';
+let currentCategory = 'all';
+let currentPriority = 'all';
 let searchQuery = '';
 
 function renderComplaints() {
@@ -129,6 +152,12 @@ function renderComplaints() {
 
     if (currentFilter !== 'all') {
         filtered = filtered.filter(c => c.status === currentFilter);
+    }
+    if (currentCategory !== 'all') {
+        filtered = filtered.filter(c => c.category === currentCategory);
+    }
+    if (currentPriority !== 'all') {
+        filtered = filtered.filter(c => c.priority === currentPriority);
     }
 
     if (searchQuery.trim()) {
@@ -360,8 +389,9 @@ function toggleModal(id, show) {
 function initModals() {
     document.getElementById('detailClose')?.addEventListener('click', () => toggleModal('detailModal', false));
     document.getElementById('newClose')?.addEventListener('click', () => toggleModal('newModal', false));
+    document.getElementById('filterClose')?.addEventListener('click', () => toggleModal('filterModal', false));
 
-    ['detailModal', 'newModal'].forEach(id => {
+    ['detailModal', 'newModal', 'filterModal'].forEach(id => {
         const overlay = document.getElementById(id);
         if (!overlay) return;
         overlay.addEventListener('click', (e) => {
@@ -373,12 +403,29 @@ function initModals() {
         if (e.key === 'Escape') {
             toggleModal('detailModal', false);
             toggleModal('newModal', false);
+            toggleModal('filterModal', false);
         }
     });
 
     document.getElementById('btnNewComplaint')?.addEventListener('click', () => {
         toggleModal('newModal', true);
     });
+
+    document.getElementById('btnFilter')?.addEventListener('click', () => {
+        toggleModal('filterModal', true);
+    });
+
+    const filterForm = document.getElementById('filterForm');
+    if (filterForm) {
+        filterForm.addEventListener('submit', (e) => {
+            e.preventDefault();
+            currentCategory = document.getElementById('filterCategory').value;
+            currentPriority = document.getElementById('filterPriority').value;
+            renderComplaints();
+            toggleModal('filterModal', false);
+            showToast('Filters applied');
+        });
+    }
 }
 
 // ─── Tabs ─────────────────────────────────────
@@ -501,10 +548,26 @@ function initSidebar() {
     links.forEach((link, index) => {
         link.addEventListener('click', (e) => {
             e.preventDefault();
-            if (index === 0) {
-                switchView(false);
-            } else if (index === links.length - 1) {
+            const filterMap = ['all', 'all', 'pending', 'in progress', 'resolved'];
+
+            if (index === links.length - 1) {
                 switchView(true);
+            } else if (index < filterMap.length) {
+                switchView(false);
+                currentFilter = filterMap[index];
+                renderComplaints();
+
+                // Sync states cleanly without breaking tabs logic directly via switchView
+                links.forEach(l => l.classList.remove('active'));
+                link.classList.add('active');
+
+                const nav = document.getElementById('tabsNav');
+                if (nav) {
+                    nav.querySelectorAll('.tab-btn').forEach(b => {
+                        if (b.dataset.filter === currentFilter) b.classList.add('active');
+                        else b.classList.remove('active');
+                    });
+                }
             } else {
                 showToast('Section coming soon.');
             }
